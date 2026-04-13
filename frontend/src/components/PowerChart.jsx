@@ -8,12 +8,11 @@ function CustomTooltip({ active, payload, label, xLabel, yLabel }) {
   if (!active || !payload || payload.length === 0) return null;
 
   const data = payload[0].payload;
-  // Try to find the X and Y values dynamically based on what's available
-  const xValue = data.distance !== undefined ? data.distance : 
+  const xValue = data.distance !== undefined ? data.distance :
                  (data.frequency_thz !== undefined ? data.frequency_thz : label);
-  const yValue = data.power !== undefined ? data.power : 
+  const yValue = data.power !== undefined ? data.power :
                  (data.psd_dbm_hz !== undefined ? data.psd_dbm_hz : payload[0].value);
-                 
+
   const xUnit = xLabel.includes('km') ? 'km' : (xLabel.includes('THz') ? 'THz' : '');
   const yUnit = yLabel.includes('dBm') ? 'dBm' : '';
 
@@ -32,38 +31,56 @@ function CustomTooltip({ active, payload, label, xLabel, yLabel }) {
   );
 }
 
-export default function PowerChart({ 
-  data, 
-  sensitivity, 
+export default function PowerChart({
+  data,
+  sensitivity,
   title = "📉 Puissance Optique vs Distance",
   xKey = "distance",
   yKey = "power",
   xLabel = "Distance (km)",
   yLabel = "Puissance (dBm)",
   yDomain = "auto",
-  color = "#06d6e0" 
+  color = "#06d6e0"
 }) {
   if (!data || data.length === 0) {
     return (
       <div className="glass-panel p-6 flex items-center justify-center h-full min-h-[250px]">
         <p className="text-xs text-slate-600">
-           {title.includes('Spectrale') ? "En attente du calcul backend..." : "Ajoutez des composants pour voir le graphique"}
+          {title.includes('Spectrale')
+            ? "En attente du calcul backend..."
+            : "Ajoutez des composants pour voir le graphique"}
         </p>
       </div>
     );
   }
 
-  const allX = data.map(d => d[xKey]);
-  const maxX = Math.max(...allX, 1);
-  const minX = Math.min(...allX, 0);
+  // For the power budget chart, deduplicate points at the same distance by
+  // keeping only the LAST value (i.e. after component loss), so we get a
+  // clean monotone curve instead of vertical staircase jumps.
+  const isPowerChart = xKey === 'distance';
+  const plotData = isPowerChart
+    ? (() => {
+        const seen = new Map();
+        // Two passes: collect "after" point for each distance (last wins)
+        data.forEach(pt => seen.set(pt[xKey], pt));
+        return Array.from(seen.values()).sort((a, b) => a[xKey] - b[xKey]);
+      })()
+    : data;
 
-  const allY = data.map(d => d[yKey]);
+  const allX = plotData.map(d => d[xKey]);
+  const maxX = Math.max(...allX, 1);
+
+  const allY = plotData.map(d => d[yKey]);
   if (sensitivity !== undefined) allY.push(sensitivity);
   let minY = Math.min(...allY) - 3;
   let maxY = Math.max(...allY) + 3;
-  
-  if(minY === Infinity) minY = -100;
-  if(maxY === -Infinity) maxY = 0;
+
+  if (minY === Infinity) minY = -100;
+  if (maxY === -Infinity) maxY = 0;
+
+  // Power chart uses monotone for a smooth budget curve;
+  // spectral chart uses linear to faithfully render the sharp peak.
+  const lineType = isPowerChart ? "monotone" : "linear";
 
   return (
     <div className="glass-panel p-3 glow-cyan h-full flex flex-col">
@@ -78,7 +95,10 @@ export default function PowerChart({
           </span>
           {sensitivity !== undefined && (
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-0.5 bg-neon-red rounded-full inline-block border-dashed" style={{ borderTop: '1px dashed #ef4444', height: 0, width: 12 }} />
+              <span
+                className="w-3 inline-block"
+                style={{ borderTop: '1px dashed #ef4444', height: 0, width: 12 }}
+              />
               <span className="text-slate-500">Sensibilité</span>
             </span>
           )}
@@ -87,7 +107,7 @@ export default function PowerChart({
 
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+          <ComposedChart data={plotData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
             <defs>
               <linearGradient id={`gradient-${xKey}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={color} stopOpacity={0.3} />
@@ -104,11 +124,13 @@ export default function PowerChart({
             <XAxis
               dataKey={xKey}
               type="number"
-              domain={xKey === 'distance' ? [0, maxX] : ['auto', 'auto']}
-              tickCount={xKey === 'distance' ? 8 : 5}
+              domain={isPowerChart ? [0, maxX] : ['auto', 'auto']}
+              tickCount={isPowerChart ? 8 : 5}
               axisLine={{ stroke: '#2a2a40' }}
               tickLine={{ stroke: '#2a2a40' }}
-              tickFormatter={(val) => Number.isInteger(val) ? val : parseFloat(val).toFixed(2)}
+              tickFormatter={(val) =>
+                Number.isInteger(val) ? val : parseFloat(val).toFixed(2)
+              }
               label={{
                 value: xLabel,
                 position: 'insideBottomRight',
@@ -133,22 +155,22 @@ export default function PowerChart({
 
             <Tooltip content={<CustomTooltip xLabel={xLabel} yLabel={yLabel} />} />
 
-          {sensitivity !== undefined && (
-            <ReferenceLine
-              y={sensitivity}
-              stroke="#ef4444"
-              strokeDasharray="6 4"
-              strokeWidth={1.5}
-              label={{
-                value: `Sensibilité: ${sensitivity} dBm`,
-                position: 'right',
-                style: { fill: '#ef4444', fontSize: 10, fontFamily: 'JetBrains Mono' },
-              }}
-            />
-          )}
+            {sensitivity !== undefined && (
+              <ReferenceLine
+                y={sensitivity}
+                stroke="#ef4444"
+                strokeDasharray="6 4"
+                strokeWidth={1.5}
+                label={{
+                  value: `Sensibilité: ${sensitivity} dBm`,
+                  position: 'right',
+                  style: { fill: '#ef4444', fontSize: 10, fontFamily: 'JetBrains Mono' },
+                }}
+              />
+            )}
 
             <Area
-              type="monotone"
+              type={lineType}
               dataKey={yKey}
               fill={`url(#gradient-${xKey})`}
               stroke="none"
@@ -156,7 +178,7 @@ export default function PowerChart({
             />
 
             <Line
-              type={xKey === 'frequency_thz' ? "linear" : "stepAfter"}
+              type={lineType}
               dataKey={yKey}
               stroke={color}
               strokeWidth={2}
