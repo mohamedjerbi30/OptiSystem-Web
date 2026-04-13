@@ -8,6 +8,14 @@ from typing import List, Dict, Any
 from .components import COMPONENT_REGISTRY
 
 
+def get_param(params: dict, key: str, default=None):
+    """Safely extract a param value whether it's a flat value or a {value: ...} dict."""
+    val = params.get(key, default)
+    if isinstance(val, dict):
+        return val.get('value', default)
+    return val if val is not None else default
+
+
 class PropagationEngine:
     def __init__(self):
         pass
@@ -63,18 +71,13 @@ class PropagationEngine:
             if not comp_class:
                 continue
                 
-            comp = comp_class(comp_data.get('params', {}))
-            
-            # Record state before processing if it's a junction or amplifier
-            comp_category = comp_type.split('_')[0] if '_' in comp_type else comp_type
+            params = comp_data.get('params', {})
+            comp = comp_class(params)
             
             # Handle distance tracking for fibers
             is_fiber = comp_type in ['fiber_smf', 'fiber_mmf', 'fiber_dcf', 'pigtail']
             if is_fiber:
-                length = comp_data.get('params', {}).get('length', {}).get('value', 0)
-                # Instead of step-by-step in backend, we just do start and end points for the budget
-                # More detailed step-by-step is handled in frontend for now, or we can add it here.
-                # Process the signal
+                length = get_param(params, 'length', 0)
                 signal = comp.process(signal)
                 current_distance += length
                 power_points.append({
@@ -83,26 +86,24 @@ class PropagationEngine:
                     "label": f"Fin {comp_data.get('shortLabel', comp_type)}"
                 })
             else:
-                # Process the signal
                 power_before = signal['power_dbm']
                 signal = comp.process(signal)
                 power_after = signal['power_dbm']
                 
-                # Add points depending on component type
                 if power_before != power_after:
                     power_points.append({
                         "distance": current_distance,
                         "power": power_before,
                         "label": f"Avant {comp_data.get('shortLabel', comp_type)}",
-                        "isJunction": True if power_after < power_before else False,
-                        "isAmplifier": True if power_after > power_before else False
+                        "isJunction": power_after < power_before,
+                        "isAmplifier": power_after > power_before
                     })
                     power_points.append({
                         "distance": current_distance,
                         "power": power_after,
                         "label": f"Après {comp_data.get('shortLabel', comp_type)}",
-                         "isJunction": True if power_after < power_before else False,
-                        "isAmplifier": True if power_after > power_before else False
+                        "isJunction": power_after < power_before,
+                        "isAmplifier": power_after > power_before
                     })
                 elif comp_type in ['photodiode_pin', 'photodiode_apd']:
                     power_points.append({
@@ -113,7 +114,6 @@ class PropagationEngine:
                     })
 
         # Prepare spectral data for frontend (downsample if necessary for JSON)
-        # We might have 4096 points, maybe send 500 points to keep JSON small
         f = signal['frequency_array']
         psd = signal['power_spectral_density']
         
@@ -127,13 +127,10 @@ class PropagationEngine:
             f_plot = f
             psd_plot = psd
             
-        # Convert frequency to THz and PSD to dBm/nm or normalized for plotting
         f_thz = f_plot / 1e12
         
         # Prevent log(0)
         psd_safe = np.maximum(psd_plot, 1e-20)
-        # 10*log10(W) = dBW. dBm = dBW + 30.
-        # Note: This is PSD in dBm/Hz. For displaying, might want relative or normalized.
         psd_dbm_hz = 10 * np.log10(psd_safe) + 30
         
         spectrum_data = [
@@ -147,7 +144,6 @@ class PropagationEngine:
             "center_frequency_thz": float(signal['center_frequency'] / 1e12),
         }
         if 'metadata' in signal:
-            # Filter out numpy arrays or non-serializable objects if any
             for k, v in signal['metadata'].items():
                 if isinstance(v, (int, float, str, bool)):
                     metrics[k] = v

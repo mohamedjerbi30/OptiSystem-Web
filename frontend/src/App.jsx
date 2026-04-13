@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Activity } from 'lucide-react';
+import { Activity, XCircle, CheckCircle } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ChainEditor from './components/ChainEditor';
 import PowerChart from './components/PowerChart';

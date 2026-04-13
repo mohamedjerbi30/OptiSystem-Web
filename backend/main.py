@@ -10,7 +10,7 @@ app = FastAPI(title="OptiSim Backend API", description="Spectral Simulation Engi
 # Enable CORS for the React frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust this in production, e.g., ["http://localhost:5173"]
+    allow_origins=["http://localhost:5173"],  # Adjust this in production, e.g., ["http://localhost:5173"]
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
