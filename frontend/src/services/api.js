@@ -1,4 +1,5 @@
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_URL = VITE_API_BASE_URL.endsWith('/api') ? VITE_API_BASE_URL : `${VITE_API_BASE_URL}/api`;
 
 export async function simulateSpectrum(chain) {
   try {
