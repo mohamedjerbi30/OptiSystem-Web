@@ -8,12 +8,11 @@ from engine.propagation import PropagationEngine
 
 app = FastAPI(title="OptiSim Backend API", description="Spectral Simulation Engine for OptiSim")
 
-# Enable CORS for the React frontend
-cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")]
+# Enable CORS for all origins for maximum compatibility
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
