@@ -9,7 +9,10 @@ import { calculatePowerBudget } from './engine/powerBudget';
 import { simulateSpectrum } from './services/api';
 
 export default function App() {
-  const [chain, setChain] = useState([]);
+  const [chain, setChain] = useState(() => {
+    const saved = localStorage.getItem('optisim-chain');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [backendData, setBackendData] = useState(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationError, setSimulationError] = useState(null);
@@ -83,6 +86,9 @@ export default function App() {
 
   // Run simulation whenever chain changes significantly, or via a button
   React.useEffect(() => {
+    // Save to localStorage
+    localStorage.setItem('optisim-chain', JSON.stringify(chain));
+
     const delayDebounceFn = setTimeout(() => {
       if (chain.length > 0) {
         runSpectralSimulation();
