@@ -31,7 +31,7 @@ We recommend hosting the frontend on **Vercel** and the backend on **Render**.
 
 ### Backend (Render)
 1. Build Command: `pip install -r requirements.txt`
-2. Start Command: `gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:$PORT`
+2. Start Command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
 3. Environment Variable: `CORS_ORIGINS` (set to your Vercel URL).
 
 ### Frontend (Vercel)
