@@ -4,7 +4,12 @@ from pydantic import BaseModel
 from typing import List, Dict, Any
 import os
 import uvicorn
+import logging
 from engine.propagation import PropagationEngine
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="OptiSim Backend API", description="Spectral Simulation Engine for OptiSim")
 
@@ -16,6 +21,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+async def root():
+    return {"message": "OptiSim API is online"}
 
 engine = PropagationEngine()
 
@@ -33,8 +42,9 @@ class SimulationRequest(BaseModel):
 @app.post("/api/simulate")
 async def simulate_optical_link(request: SimulationRequest):
     try:
-        # Convert Pydantic models to dicts
-        chain_data = [comp.dict() for comp in request.chain]
+        logger.info(f"Received simulation request with {len(request.chain)} components")
+        # Convert Pydantic models to dicts (v2 compatible)
+        chain_data = [comp.model_dump() if hasattr(comp, 'model_dump') else comp.dict() for comp in request.chain]
         
         # Run simulation
         result = engine.simulate_chain(chain_data)
