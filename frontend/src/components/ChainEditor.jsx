@@ -102,7 +102,7 @@ export default function ChainEditor({ chain, onUpdate, onRemove, onMoveUp, onMov
 
       {/* Legend */}
       <div className="flex items-center gap-4 mt-2 px-4 shrink-0">
-        <span className="text-[8px] text-slate-600">
+        <span className="text-[18px] text-white">
           💡 Cliquez sur un composant pour modifier ses paramètres
         </span>
       </div>
