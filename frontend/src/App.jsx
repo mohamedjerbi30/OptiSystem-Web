@@ -167,7 +167,7 @@ export default function App() {
           {/* Main content column */}
           <div className="flex-1 flex flex-col overflow-hidden p-3 gap-3">
             {/* Horizontal chain editor */}
-            <div className="glass-panel p-3 shrink-0 min-h-[180px]">
+            <div className="glass-panel p-3 shrink-0 min-h-[250px]">
               <ChainEditor
                 chain={chain}
                 onUpdate={handleUpdateParam}
