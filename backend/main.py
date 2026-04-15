@@ -2,15 +2,17 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any
+import os
 import uvicorn
 from engine.propagation import PropagationEngine
 
 app = FastAPI(title="OptiSim Backend API", description="Spectral Simulation Engine for OptiSim")
 
 # Enable CORS for the React frontend
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Adjust this in production, e.g., ["http://localhost:5173"]
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
