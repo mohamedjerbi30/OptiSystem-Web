@@ -57,7 +57,7 @@ export default function ChainEditor({ chain, onUpdate, onRemove, onMoveUp, onMov
       </div>
 
       {/* Horizontal schematic area */}
-      <div className="flex-1 flex items-center overflow-x-auto overflow-y-visible py-8 px-4 relative min-h-[140px]">
+      <div className="flex-1 flex items-center overflow-x-auto overflow-y-visible py-8 px-4 relative min-h-[250px]">
         {/* Transmit indicator */}
         <div className="flex flex-col items-center mr-2 shrink-0">
           <div className="text-[8px] text-neon-cyan/60 font-mono uppercase tracking-widest mb-1">TX</div>
